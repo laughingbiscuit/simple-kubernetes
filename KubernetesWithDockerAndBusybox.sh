@@ -16,7 +16,7 @@ read PressEnterToContinue
 echo \
   "And create our cluster" > /dev/null
 read PressEnterToContinue
-k3d cluster create mycluster
+k3d cluster create mycluster --servers 3
 read PressEnterToContinue
 
 echo \
