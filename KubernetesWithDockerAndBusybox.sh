@@ -8,7 +8,7 @@ read PressEnterToContinue
 echo \
   "Lets check that docker is installed, this is our only dependency to run this demo!" > /dev/null
 read PressEnterToContinue
-docker version
+docker version > /dev/null && echo "Success"
 read PressEnterToContinue
 
 echo \
