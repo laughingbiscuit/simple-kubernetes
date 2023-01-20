@@ -1,8 +1,7 @@
 #!/bin/sh
 set -xe
 
-cat welcome.txt
-sleep 1
+cat welcome.txt && sleep 1
 read PressEnterToContinue
 
 echo \
