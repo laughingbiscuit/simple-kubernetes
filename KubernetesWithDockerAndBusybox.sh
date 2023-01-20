@@ -16,7 +16,7 @@ read PressEnterToContinue
 echo \
   "And create our cluster" > /dev/null
 read PressEnterToContinue
-k3d cluster create mycluster --k3s-arg "--disable=traefik,servicelb,metrics-server,local-storage,coredns"
+k3d cluster create mycluster --k3s-arg "--disable=traefik,servicelb,metrics-server,local-storage,coredns@server:*"
 sleep 2
 read PressEnterToContinue
 
