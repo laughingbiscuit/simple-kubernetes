@@ -3,6 +3,8 @@ set -xe
 
 cat welcome.txt
 
+read PressEnterToContinue
+
 echo \
   "Lets check that docker is installed, this is our only dependency to run this demo!" > /dev/null
 read PressEnterToContinue
