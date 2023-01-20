@@ -16,7 +16,7 @@ read PressEnterToContinue
 echo \
   "And create our cluster" > /dev/null
 read PressEnterToContinue
-k3d cluster create mycluster --no-deploy=traefik,servicelb,metrics-server@server:*
+k3d cluster create mycluster --no-deploy=traefik,servicelb,metrics-server,local-storage,coredns
 sleep 2
 read PressEnterToContinue
 
