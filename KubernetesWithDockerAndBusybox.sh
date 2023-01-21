@@ -113,3 +113,11 @@ EOF
 kubectl wait --for=condition=available deployment.apps/nginx-test-registry --timeout 30s
 kubectl get deployments
 read PressEnterToContinue
+
+echo \
+  "Nice, everything is working so far. In case we want to debug something, we can create an interactive pod" > /dev/null
+echo \
+  "Busybox or alpine can be interchanged depending if you need a pkg manager" > /dev/null
+read PressEnterToContinue
+timeout 5 kubectl run -i --tty debug --image=alpine --restart=Never -- sh || true
+read PressEnterToContinue
