@@ -117,10 +117,10 @@ read PressEnterToContinue
 echo \
   "Nice, everything is working so far. In case we want to debug something, we can create an interactive pod with:" > /dev/null
 echo \
-  "'kubectl run -i --tty debug --image=alpine --restart=Never -- sh'"
+  "kubectl run -i --tty debug --image=alpine --restart=Never -- sh"
 echo \
   "Busybox or alpine can be interchanged depending if you need a pkg manager" > /dev/null
 read PressEnterToContinue
 echo \
-  "'kubectl get events' is also a good place to start if something is broken"
+  "kubectl get events is also a good place to start if something is broken"
 read PressEnterToContinue
