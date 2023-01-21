@@ -19,8 +19,8 @@ read PressEnterToContinue
 echo \
   "And create our cluster" > /dev/null
 read PressEnterToContinue
-k3d cluster create mycluster -p "8081:80@loadbalancer" --registry-create mycluster-registry
-REGISTRY_PORT=$(docker inspect mycluster-registry | jq -r '.[0].Config.Labels["k3s.registry.port.external"]')
+k3d registry create myregistry.localhost --port 12345
+k3d cluster create mycluster -p "8081:80@loadbalancer" --registry-use k3d-myregistry.localhost:12345
 
 read PressEnterToContinue
 
@@ -78,15 +78,10 @@ curl localhost:8081
 read PressEnterToContinue
 
 echo \
-  "Lets check the registry port" > /dev/null
-echo $REGISTRY_PORT
-read PressEnterToContinue
-
-echo \
   "And push the nginx image to our registry to test it" > /dev/null
 docker pull nginx:latest
-docker tag nginx:latest k3d-registry.localhost:$REGISTRY_PORT/nginx:latest
-docker push k3d-registry.localhost:$REGISTRY_PORT/nginx:latest
+docker tag nginx:latest k3d-registry.localhost:12345/nginx:latest
+docker push k3d-registry.localhost:12345/nginx:latest
 read PressEnterToContinue
 
 echo \
@@ -110,11 +105,11 @@ spec:
     spec:
       containers:
       - name: nginx-test-registry
-        image: k3d-registry.localhost:$REGISTRY_PORT/nginx:latest
+        image: k3d-myregistry.localhost:12345/nginx:latest 
         ports:
         - containerPort: 80
 EOF
 
 kubectl wait --for=condition=available deployment.apps/nginx-test-registry --timeout 30s
-lubectl get deployments
+kubectl get deployments
 read PressEnterToContinue
