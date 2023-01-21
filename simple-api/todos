@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+echo "Content-type: text/plain"
+echo ""
+if [[ "$REQUEST_METHOD" == "GET" ]]; then
+  cat todos.csv
+elif [[ "$REQUEST_METHOD" == "POST" ]]; then
+  echo "$QUERY_STRING" | cut -d= -f2 >> todos.csv
+  echo "Success"
+fi
