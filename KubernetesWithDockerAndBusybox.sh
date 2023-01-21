@@ -21,6 +21,7 @@ echo \
 read PressEnterToContinue
 k3d cluster create mycluster -p "8081:80@loadbalancer" --registry-create mycluster-registry
 REGISTRY_PORT=$(docker ps -f name=mycluster-registry --format '{{.Ports}}' | grep -Eo '\d+->' | head -n 1 | sed 's/->//')
+docker ps
 
 read PressEnterToContinue
 
