@@ -1,6 +1,13 @@
 #!/bin/sh
 set -xe
 
+###
+# This script allows a demonstration of key Kubernetes concepts with minimal dependencies 
+# 
+# It uses 'echo >/dev/null' to explain to the user what is going on 
+# and 'read PressEnterToContinue' to pause until the user is ready to continue
+###
+
 cat welcome.txt && sleep 1
 read PressEnterToContinue
 
