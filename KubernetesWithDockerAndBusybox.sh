@@ -1,55 +1,50 @@
 #!/bin/sh
 set -xe
 
-###
-# This script allows a demonstration of key Kubernetes concepts with minimal dependencies 
-# 
-# It uses 'echo >/dev/null' to explain to the user what is going on 
-# and 'read PressEnterToContinue' to pause until the user is ready to continue
-###
-
 cat welcome.txt && sleep 1
 read PressEnterToContinue
 
-echo >/dev/null \
-  "Lets check that docker is installed, this is our only dependency to run this demo!"
+echo \
+  "Lets check that docker is installed, this is our only dependency to run this demo!" > /dev/null
 read PressEnterToContinue
 which docker
 read PressEnterToContinue
 
-echo >/dev/null \
-  "Lets install k3d, a minimal kubernetes distro by rancher"
+echo \
+  "Lets install k3d, a minimal kubernetes distro by rancher" > /dev/null
 read PressEnterToContinue
 wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 read PressEnterToContinue
 
-echo >/dev/null \
-  "And create our cluster"
+echo \
+  "And create our cluster" > /dev/null
 read PressEnterToContinue
-k3d cluster create mycluster -p "8081:80@loadbalancer"
+k3d cluster create mycluster -p "8081:80@loadbalancer" --registry-create mycluster-registry
+REGISTRY_PORT=$(docker ps -f name=mycluster-registry --format '{{.Ports}}' | grep -Eo '\d+->' | head -n 1 | sed 's/->//')
+
 read PressEnterToContinue
 
-echo >/dev/null \
-  "And check it is up"
+echo \
+  "And check it is up" > /dev/null
 read PressEnterToContinue
 kubectl get nodes
 read PressEnterToContinue
 
-echo >/dev/null \
-  "Let's deploy nginx as a test"
+echo \
+  "Let's deploy nginx as a test" > /dev/null
 read PressEnterToContinue
 kubectl create deployment nginx --image=nginx
 kubectl wait --for=condition=available deployment.apps/nginx --timeout 30s
 read PressEnterToContinue
 
-echo >/dev/null \
-  "Let's create a service to expose it"
+echo \
+  "Let's create a service to expose it" > /dev/null
 read PressEnterToContinue
 kubectl create service clusterip nginx --tcp=80:80
 read PressEnterToContinue
 
-echo >/dev/null \
-  "Now create the ingress"
+echo \
+  "Now create the ingress" > /dev/null
 read PressEnterToContinue
 
 cat << EOF | kubectl apply -f -
@@ -75,10 +70,51 @@ spec:
 EOF
 read PressEnterToContinue
 
-echo >/dev/null \
-  "Lets call it every 5 seconds until nginx is accessible"
+echo \
+  "Lets call it every 5 seconds until nginx is accessible" > /dev/null
 read PressEnterToContinue
 while ! curl -sf localhost:8081 > /dev/null; do sleep 5; done
 curl localhost:8081
 read PressEnterToContinue
 
+echo \
+  "Lets check the registry port" > /dev/null
+echo $REGISTRY_PORT
+read PressEnterToContinue
+
+echo \
+  "And push the nginx image to our registry to test it" > /dev/null
+docker pull nginx:latest
+docker tag nginx:latest k3d-registry.localhost:$REGISTRY_PORT/nginx:latest
+docker push k3d-registry.localhost:$REGISTRY_PORT/nginx:latest
+read PressEnterToContinue
+
+echo \
+  "and even create a pod from it to be super sure" > /dev/null
+cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test-registry
+  labels:
+    app: nginx-test-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-test-registry
+  template:
+    metadata:
+      labels:
+        app: nginx-test-registry
+    spec:
+      containers:
+      - name: nginx-test-registry
+        image: k3d-registry.localhost:$REGISTRY_PORT/nginx:latest
+        ports:
+        - containerPort: 80
+EOF
+
+kubectl wait --for=condition=available deployment.apps/nginx-test-registry --timeout 30s
+lubectl get deployments
+read PressEnterToContinue
