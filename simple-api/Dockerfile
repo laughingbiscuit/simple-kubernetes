@@ -6,6 +6,5 @@ ADD httpd.conf .
 ADD status cgi-bin/
 ADD rabbits cgi-bin/
 ADD secrets cgi-bin/
-RUN echo "[]" > cgi-bin/rabbits.json
 
-CMD httpd -c httpd.conf -p 8080 -f -h .
+CMD httpd -c httpd.conf -p 80 -f -h .

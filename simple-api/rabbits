@@ -3,21 +3,25 @@ set -e
 echo "Content-type: application/json"
 echo ""
 
+if ! test -f /data/rabbits.json; then
+  echo "[]" > /data/rabbits.json
+fi
+
 if [[ "$PATH_INFO" == "" ]]; then
   if [[ "$REQUEST_METHOD" == "GET" ]]; then
-    cat rabbits.json
+    cat /data/rabbits.json
   elif [[ "$REQUEST_METHOD" == "POST" ]]; then
-    jq ".[length] |= .+ $(cat)" rabbits.json | sponge rabbits.json
+    jq ".[length] |= .+ $(cat)" /data/rabbits.json | sponge /data/rabbits.json
     echo '{"success":true}' | jq
   elif [[ "$REQUEST_METHOD" == "DELETE" ]]; then
-    echo "[]" > rabbits.json
+    echo "[]" > /data/rabbits.json
   fi
 else 
   ID=$(echo $PATH_INFO | cut -c 2-)
   if [[ "$REQUEST_METHOD" == "GET" ]]; then
-    jq ".[] | select(.id == $ID)" rabbits.json
+    jq ".[] | select(.id == $ID)" /data/rabbits.json
   elif [[ "$REQUEST_METHOD" == "DELETE" ]]; then
-    jq "del(.[] | select(.id == $ID))" rabbits.json | sponge rabbits.json
+    jq "del(.[] | select(.id == $ID))" /data/rabbits.json | sponge /data/rabbits.json
     echo '{"success":true}' | jq
   fi
 fi

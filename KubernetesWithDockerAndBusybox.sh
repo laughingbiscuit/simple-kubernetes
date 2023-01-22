@@ -20,7 +20,7 @@ echo >/dev/null \
   "And create our cluster" 
 read PressEnterToContinue
 k3d registry create myregistry.localhost --port 12345
-k3d cluster create mycluster -p "8081:80@loadbalancer" --registry-use k3d-myregistry.localhost:12345
+k3d cluster create mycluster -p "80:80@loadbalancer" --registry-use k3d-myregistry.localhost:12345
 
 read PressEnterToContinue
 
@@ -28,90 +28,6 @@ echo >/dev/null \
   "And check it is up" 
 read PressEnterToContinue
 kubectl get nodes
-read PressEnterToContinue
-
-echo >/dev/null \
-  "Let's deploy nginx as a test" 
-read PressEnterToContinue
-kubectl create deployment nginx --image=nginx
-kubectl wait --for=condition=available deployment.apps/nginx --timeout 30s
-read PressEnterToContinue
-
-echo >/dev/null \
-  "Let's create a service to expose it" 
-read PressEnterToContinue
-kubectl create service clusterip nginx --tcp=80:80
-read PressEnterToContinue
-
-echo >/dev/null \
-  "Now create the ingress" 
-read PressEnterToContinue
-
-cat << EOF | kubectl apply -f -
-
-# apiVersion: networking.k8s.io/v1beta1 # for k3s < v1.19
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: nginx
-  annotations:
-    ingress.kubernetes.io/ssl-redirect: "false"
-spec:
-  rules:
-  - http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: nginx
-            port:
-              number: 80
-EOF
-read PressEnterToContinue
-
-echo >/dev/null \
-  "Lets call it every 5 seconds until nginx is accessible" 
-read PressEnterToContinue
-while ! curl -sf localhost:8081 > /dev/null; do sleep 5; done
-curl localhost:8081
-read PressEnterToContinue
-
-echo >/dev/null \
-  "And push the nginx image to our registry to test it" 
-docker pull nginx:latest
-docker tag nginx:latest k3d-registry.localhost:12345/nginx:latest
-docker push k3d-registry.localhost:12345/nginx:latest
-read PressEnterToContinue
-
-echo >/dev/null \
-  "and even create a pod from it to be super sure" 
-cat <<EOF | kubectl apply -f -
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-test-registry
-  labels:
-    app: nginx-test-registry
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: nginx-test-registry
-  template:
-    metadata:
-      labels:
-        app: nginx-test-registry
-    spec:
-      containers:
-      - name: nginx-test-registry
-        image: k3d-myregistry.localhost:12345/nginx:latest 
-        ports:
-        - containerPort: 80
-EOF
-
-kubectl wait --for=condition=available deployment.apps/nginx-test-registry --timeout 30s
-kubectl get deployments
 read PressEnterToContinue
 
 echo >/dev/null \
@@ -132,9 +48,9 @@ read PressEnterToContinue
 
 echo>/dev/null \
   "Test it locally"
-docker run -p 8080:8080 --name some-simple-api -d simple-api
-sh simple-api/test.sh && echo>/dev/null "it worked!"
-docker rm -f some-simple-api
+#docker run -p 80:80 --name some-simple-api -d simple-api
+#sh simple-api/test.sh && echo>/dev/null "it worked!"
+#docker rm -f some-simple-api
 
 read PressEnterToContinue
 
@@ -145,7 +61,24 @@ docker push k3d-registry.localhost:12345/simple-api:latest
 read PressEnterToContinue
 
 echo >/dev/null \
-  "and even create a deployment from it to be super sure" 
+  "lets create a persistent volume" 
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-path-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+EOF
+
+echo >/dev/null \
+  "and create a deployment" 
 cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
@@ -167,10 +100,62 @@ spec:
       - name: simple-api
         image: k3d-myregistry.localhost:12345/simple-api:latest 
         ports:
-        - containerPort: 8080
+        - containerPort: 80
+        volumeMounts:
+        - name: volv
+          mountPath: /data
+      volumes:
+      - name: volv
+        persistentVolumeClaim:
+          claimName: local-path-pvc
 EOF
+
 
 kubectl wait --for=condition=available deployment.apps/simple-api --timeout 30s
 kubectl get deployments
+kubectl create service clusterip simple-api --tcp=80:80
 read PressEnterToContinue
+
+cat <<EOF | kubectl apply -f -
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simple-api-ingress
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: simple-api
+            port:
+              number: 80
+EOF
+read PressEnterToContinue
+
+while ! curl -sf localhost/cgi-bin/rabbits > /dev/null; do sleep 1; done
+
+curl -f -XPOST localhost/cgi-bin/rabbits -d '{"id":1, "name":"bugs"}'
+curl -f localhost/cgi-bin/rabbits
+
+kubectl scale deployment simple-api --replicas=0
+
+# wait until error
+while curl -sf localhost/cgi-bin/rabbits > /dev/null; do sleep 1; done
+
+curl localhost/cgi-bin/rabbits
+kubectl scale deployment simple-api --replicas=5
+while ! curl -sf localhost/cgi-bin/rabbits > /dev/null; do sleep 1; done
+sleep 2
+kubectl get deployment simple-api
+curl -sf -XPOST localhost/cgi-bin/rabbits -d '{"id":2, "name":"bunny"}'
+curl -sf -XPOST localhost/cgi-bin/rabbits -d '{"id":3, "name":"diamond"}'
+curl -sf -XPOST localhost/cgi-bin/rabbits -d '{"id":4, "name":"ebony"}'
+curl -sf -XPOST localhost/cgi-bin/rabbits -d '{"id":5, "name":"bobby"}'
+curl -sf -XPOST localhost/cgi-bin/rabbits -d '{"id":6, "name":"honey"}'
+curl -sf localhost/cgi-bin/rabbits
 
