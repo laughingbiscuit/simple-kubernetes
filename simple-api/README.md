@@ -12,4 +12,4 @@ This is a learning tool, so please note:
 - there is no validation
 - there is no automatic generation of ids
 
-But it anybody can understand it
+But it anybody can understand it and its less than 2MB
