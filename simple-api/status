@@ -3,3 +3,8 @@ set -e
 echo "Content-type: text/plain"
 echo ""
 echo "OK"
+printenv
+payload="$(cat)"
+echo "payload is:"
+echo "$payload"
+# https://stackoverflow.com/questions/17099860/why-cant-you-use-cat-to-read-a-file-line-by-line-where-each-line-has-delimiters

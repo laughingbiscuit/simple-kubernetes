@@ -4,12 +4,17 @@ set -ex
 # Check if the API is up
 curl -f "http://localhost:8080/cgi-bin/status"
 
-# Add some things to the todo list
-curl -f -XPOST 'http://localhost:8080/cgi-bin/todos?name=Exercise'
-curl -f -XPOST 'http://localhost:8080/cgi-bin/todos?name=Dishes'
+# Manage our rabbits
 
-# Get the whole todo list
-curl -f 'http://localhost:8080/cgi-bin/todos'
+curl -f -XPOST localhost:8080/cgi-bin/rabbits -d '{"id":1, "name":"bugs"}'
+curl -f -XPOST localhost:8080/cgi-bin/rabbits -d '{"id":2, "name":"bunny"}'
+curl -f localhost:8080/cgi-bin/rabbits 
+curl -f localhost:8080/cgi-bin/rabbits/1
+curl -f -XDELETE localhost:8080/cgi-bin/rabbits/1
+curl -f localhost:8080/cgi-bin/rabbits 
+curl -f -XPOST localhost:8080/cgi-bin/rabbits -d '{"id":1, "name":"bugs"}'
+curl -f -XDELETE localhost:8080/cgi-bin/rabbits
+curl -f localhost:8080/cgi-bin/rabbits 
 
 # Get some protected secrets
 curl -f -u "admin:password" 'http://localhost:8080/cgi-bin/secrets'
